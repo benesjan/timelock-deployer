@@ -30,7 +30,7 @@ contract TimelockScript is Script {
 
         // Set timeLock admin role to MULTI_SIG and revoke the role to deployer
         timelockController.grantRole(timelockController.TIMELOCK_ADMIN_ROLE(), address(MULTI_SIG));
-        timelockController.revokeRole(timelockController.TIMELOCK_ADMIN_ROLE(), address(this));
+        timelockController.revokeRole(timelockController.TIMELOCK_ADMIN_ROLE(), tx.origin);
 
         vm.stopBroadcast();
     }
