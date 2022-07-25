@@ -39,10 +39,8 @@ contract TimelockScript is Test {
 
         timelockController = new TimelockController(DELAY, proposers, executors);
 
-        if (tx.origin != address(MULTI_SIG)) {
-            // Since the deployer is not the multisig we set timeLock admin role to MULTI_SIG and revoke the role to deployer
-            _transferAdminToMultisig();
-        }
+        // Set timeLock admin role to MULTI_SIG and revoke the role to deployer
+        _transferAdminToMultisig();
 
         if (!SIMULATE) {
             vm.stopBroadcast();
