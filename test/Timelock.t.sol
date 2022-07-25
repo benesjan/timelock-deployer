@@ -14,7 +14,7 @@ contract TimelockTest is Test {
     GnosisSafe internal constant MULTI_SIG = GnosisSafe(payable(0xE298a76986336686CC3566469e3520d23D1a8aaD));
     ProxyAdmin internal constant PROXY_ADMIN = ProxyAdmin(0xC5b735d05c26579B701Be9bED253Bb588503B26B);
     TransparentUpgradeableProxy internal constant PROXY =
-    TransparentUpgradeableProxy(payable(0xFF1F2B4ADb9dF6FC8eAFecDcbF96A2B351680455));
+        TransparentUpgradeableProxy(payable(0xFF1F2B4ADb9dF6FC8eAFecDcbF96A2B351680455));
 
     // For more details about the params check:
     // https://forum.openzeppelin.com/t/tutorial-on-using-a-gnosis-safe-multisig-with-a-timelock-to-upgrade-contracts-and-use-functions-in-a-proxy-contract/7272

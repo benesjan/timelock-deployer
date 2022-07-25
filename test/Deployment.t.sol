@@ -8,7 +8,8 @@ import {TimelockController} from "@openzeppelin/governance/TimelockController.so
 
 contract DeploymentTest is Test {
     GnosisSafe internal constant MULTI_SIG = GnosisSafe(payable(0xC3b0ce69F5B891309584cd4F5c6F9d66E6007E48));
-    TimelockController internal constant TIMELOCK_CONTROLLER = TimelockController(payable(0x6352f096c25881Fe16E83c5C3CE53E5E6E96EA9e));
+    TimelockController internal constant TIMELOCK_CONTROLLER =
+        TimelockController(payable(0x6352f096c25881Fe16E83c5C3CE53E5E6E96EA9e));
     address internal constant DEPLOYER = 0xFf3170A4F117A18740A65C56fCbdd886ADC09a44;
 
     address[] internal proposers;
