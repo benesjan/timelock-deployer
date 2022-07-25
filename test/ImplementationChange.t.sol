@@ -10,7 +10,7 @@ import {ProxyAdmin} from "@openzeppelin/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {RollupProcessorV2} from "./processors/RollupProcessorV2.sol";
 
-contract TimelockTest is Test {
+contract ImplementationChangeTest is Test {
     GnosisSafe internal constant MULTI_SIG = GnosisSafe(payable(0xE298a76986336686CC3566469e3520d23D1a8aaD));
     ProxyAdmin internal constant PROXY_ADMIN = ProxyAdmin(0xC5b735d05c26579B701Be9bED253Bb588503B26B);
     TransparentUpgradeableProxy internal constant PROXY =
