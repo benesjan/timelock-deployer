@@ -330,7 +330,7 @@ contract Full is Test {
     }
 
     function readSafe() public {
-        _readSafe(address(0));
+        readSafe(address(0));
     }
 
     function readSafe(address _safe) public {
