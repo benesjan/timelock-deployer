@@ -1,0 +1,4 @@
+geth:
+  ethereum:
+    mainnet:
+      uri: http://localhost:5030
