@@ -10,7 +10,8 @@ import {Enum} from "safe/common/Enum.sol";
 import {TimelockController} from "@openzeppelin/governance/TimelockController.sol";
 
 contract Full is Test {
-    bool internal UPDATE_MULTISIGS = true;
+    bool internal UPDATE_MULTISIGS = false;
+    bool internal simulate = false;
 
     address internal constant SINGLETON = 0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552;
     GnosisSafeProxyFactory internal constant FACTORY =
@@ -37,6 +38,7 @@ contract Full is Test {
 
     function setUp() public virtual {
         DEPLOYER = vm.addr(PRIVATE_KEY);
+        emit log_named_address("DEPLOYER", DEPLOYER);
     }
 
     function label() public {
@@ -53,6 +55,12 @@ contract Full is Test {
         vm.label(address(SINGLETON), "SINGLETON");
     }
 
+    /**
+     * @notice Deploy a multisig with the `_signers` and `_threshold` provided
+     * @param _signers A list of addresses that shall be signers on the multisig
+     * @param _threshold The threshold to execute a function, e.g., 2 to require two signers
+     * @return The gnosis safe generated
+     */
     function deployMultisig(address[] memory _signers, uint256 _threshold) public returns (GnosisSafe) {
         bytes memory initializer = abi.encodeWithSignature(
             "setup(address[],uint256,address,bytes,address,address,uint256,address)",
@@ -66,9 +74,23 @@ contract Full is Test {
             address(0)
         );
 
-        return GnosisSafe(payable(address(FACTORY.createProxy(SINGLETON, initializer))));
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
+        GnosisSafe safe = GnosisSafe(payable(address(FACTORY.createProxy(SINGLETON, initializer))));
+
+        return safe;
     }
 
+    /**
+     * @notice Deploys a timelock with delay of `TIMELOCK_DELAY` that has
+     * `MS_SHEDULED_UPDATE` and `MS_EMERGENCY_UPDATE` as proposers and executors,
+     * and `MS_MAINTENANCE` as executor as well.
+     * Grants `MS_EMERGENCY_UPDATE` the admin role.
+     * Revoke admin from `DEPLOYER`.
+     */
     function deployTimelock() public {
         emit log("= Timelock");
         address[] memory proposers = new address[](2);
@@ -80,6 +102,11 @@ contract Full is Test {
         executors[1] = address(MS_EMERGENCY_UPDATE);
         executors[2] = address(MS_MAINTENANCE);
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         TIME_LOCK = new TimelockController(
             TIME_LOCK_DELAY,
             proposers,
@@ -89,13 +116,31 @@ contract Full is Test {
 
         bytes32 adminRole = TIME_LOCK.TIMELOCK_ADMIN_ROLE();
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         TIME_LOCK.grantRole(adminRole, address(MS_EMERGENCY_UPDATE));
         emit log_named_address("Granted admin to   ", address(MS_EMERGENCY_UPDATE));
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         TIME_LOCK.revokeRole(adminRole, DEPLOYER);
         emit log_named_address("Revoked admin from ", DEPLOYER);
     }
 
+    /**
+     * @notice Deploys a controller (timelock with 0 delay), that has
+     * `TIME_LOCK` and `MS_EMERGENCY_UPDATE` as proposers and executors,
+     * and `MS_MAINTENANCE` as executor as well.
+     * Grants cancellor role to `MS_EMERGENCY_UPDATE`
+     * Grants admin to `TIME_LOCK` and `MS_EMERGENCY_UPDATE`
+     * Revoke admin from `DEPLOYER`
+     */
     function deployController() public {
         emit log("= Controller");
         address[] memory proposers = new address[](2);
@@ -107,6 +152,11 @@ contract Full is Test {
         executors[1] = address(MS_EMERGENCY_UPDATE);
         executors[2] = address(MS_MAINTENANCE);
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         CONTROLLER = new TimelockController(
             CONTROLLER_DELAY,
             proposers,
@@ -117,19 +167,46 @@ contract Full is Test {
         bytes32 adminRole = CONTROLLER.TIMELOCK_ADMIN_ROLE();
         bytes32 cancellerRole = CONTROLLER.CANCELLER_ROLE();
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         CONTROLLER.grantRole(cancellerRole, address(MS_EMERGENCY_UPDATE));
         emit log_named_address("Granted cancel to  ", address(MS_EMERGENCY_UPDATE));
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         CONTROLLER.grantRole(adminRole, address(MS_EMERGENCY_UPDATE));
         emit log_named_address("Granted admin to   ", address(MS_EMERGENCY_UPDATE));
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         CONTROLLER.grantRole(adminRole, address(TIME_LOCK));
         emit log_named_address("Granted admin to   ", address(TIME_LOCK));
 
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         CONTROLLER.revokeRole(adminRole, DEPLOYER);
         emit log_named_address("Revoked admin from ", DEPLOYER);
     }
 
+    /**
+     * @notice Deploys 4 multisigs, all with the deployer as the only signer.
+     * Deploy `MS_MAINTENANCE`
+     * Deploy `MS_EMERGENCY_UPDATE`
+     * Deploy `MS_SHEDULED_UPDATE`
+     * Deploy `MS_RESUME`
+     */
     function deployMultisigs() public {
         address[] memory signers = new address[](1);
         signers[0] = DEPLOYER;
@@ -147,6 +224,15 @@ contract Full is Test {
         emit log_named_address("MS_RESUME          ", address(MS_RESUME));
     }
 
+    /**
+     * @notice Perform a full setup with checks. If `UPDATE_MULTISIGS` flag set, will update signers.
+     * Deploys the 4 multisigs
+     * Deploys the timelock (+ update roles on it)
+     * Deploys the controller (+ update roles on it)
+     * Performs a check of controller roles
+     * Performs a check of timelock roles
+     * If `UPDATE_MULTISIGS == true`, updates signers of multisigs.
+     */
     function fullSetup() public {
         deployMultisigs();
         deployTimelock();
@@ -167,6 +253,13 @@ contract Full is Test {
         }
     }
 
+    /**
+     * @notice Updates the signers and threshold for a safe controlled by the `DEPLOYER`
+     * @param _ms The address of the multisig
+     * @param _signers The addresses to add as signers
+     * @param _threshold The threshold to update to
+     * @return true if successful, false otherwise
+     */
     function updateSigners(address _ms, address[] memory _signers, uint256 _threshold) public returns (bool) {
         GnosisSafe ms = GnosisSafe(payable(_ms));
 
@@ -189,7 +282,7 @@ contract Full is Test {
         }
 
         Enum.Operation op = Enum.Operation.DelegateCall;
-        uint256 gas = 100000000;
+        uint256 gas = 300000;
 
         // Then we need to send it
         bytes32 transactionHash =
@@ -198,7 +291,11 @@ contract Full is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PRIVATE_KEY, transactionHash);
         bytes memory sigs = abi.encodePacked(r, s, v);
 
-        vm.prank(DEPLOYER);
+        if (simulate) {
+            vm.prank(DEPLOYER);
+        } else {
+            vm.broadcast();
+        }
         bool success = ms.execTransaction(address(MULTI_SEND), 0, call, op, gas, 0, 0, address(0), payable(0), sigs);
 
         if (success) {
@@ -207,24 +304,16 @@ contract Full is Test {
             emit log("NO SUCCESS");
         }
 
-        /*
         address[] memory owners = ms.getOwners();
         for (uint256 i = 0; i < owners.length; i++) {
             emit log_named_address("owner", owners[i]);
         }
-        emit log_named_uint("Threshold", ms.getThreshold());*/
+        emit log_named_uint("Threshold", ms.getThreshold());
 
         return success;
     }
 
     function updateSignersMaintenance() public {
-        // Add the signers and the threshold at the last tx.
-        uint256 threshold = 3;
-        address[] memory signers = new address[](2);
-        signers[0] = address(0xdead);
-        signers[1] = address(0xbeef);
-
-        updateSigners(address(MS_MAINTENANCE), signers, threshold);
         assertFalse(true, "IMPLEMENT WITH PROPER SIGNERS");
     }
 
@@ -238,6 +327,20 @@ contract Full is Test {
 
     function updateSignersEmergencyUpdate() public {
         assertFalse(true, "IMPLEMENT WITH PROPER SIGNERS");
+    }
+
+    function readSafe() public {
+        _readSafe(address(0));
+    }
+
+    function readSafe(address _safe) public {
+        GnosisSafe ms = GnosisSafe(payable(_safe));
+
+        address[] memory owners = ms.getOwners();
+        for (uint256 i = 0; i < owners.length; i++) {
+            emit log_named_address("owner", owners[i]);
+        }
+        emit log_named_uint("Threshold", ms.getThreshold());
     }
 
     function checkControllerRoles() public {

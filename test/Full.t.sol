@@ -30,6 +30,7 @@ contract FullTest is Full {
 
     function setUp() public override {
         UPDATE_MULTISIGS = false;
+        simulate = true;
         super.setUp();
         fullSetup();
 
@@ -47,6 +48,9 @@ contract FullTest is Full {
         PROXY_ADMIN.transferOwnership(address(CONTROLLER));
     }
 
+    /**
+     * @notice Test that emergency update safe has admin of roles on controller
+     */
     function testUpdateRoleControllerWithEmergencyUpdateMs() public {
         bytes32 TIMELOCK_ADMIN_ROLE = CONTROLLER.TIMELOCK_ADMIN_ROLE();
         assertFalse(CONTROLLER.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
@@ -57,6 +61,9 @@ contract FullTest is Full {
         assertTrue(CONTROLLER.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
     }
 
+    /**
+     * @notice Test that schedule can update roles on controller after delay
+     */
     function testUpdateRoleControllerWithScheduledUpdateMs() public {
         bytes32 TIMELOCK_ADMIN_ROLE = CONTROLLER.TIMELOCK_ADMIN_ROLE();
         assertFalse(CONTROLLER.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
@@ -75,6 +82,9 @@ contract FullTest is Full {
         assertTrue(CONTROLLER.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
     }
 
+    /**
+     * @notice Test that emergency update has admin of timelock
+     */
     function testUpdateRoleTimelockWithEmergencyUpdateMs() public {
         bytes32 TIMELOCK_ADMIN_ROLE = TIME_LOCK.TIMELOCK_ADMIN_ROLE();
         assertFalse(TIME_LOCK.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
@@ -85,6 +95,9 @@ contract FullTest is Full {
         assertTrue(TIME_LOCK.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
     }
 
+    /**
+     * @notice Test that timelock has admin of timelock
+     */
     function testUpdateRoleTimelockWithScheduledUpdateMs() public {
         bytes32 TIMELOCK_ADMIN_ROLE = TIME_LOCK.TIMELOCK_ADMIN_ROLE();
         assertFalse(TIME_LOCK.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
@@ -103,6 +116,9 @@ contract FullTest is Full {
         assertTrue(TIME_LOCK.hasRole(TIMELOCK_ADMIN_ROLE, address(0xdead)));
     }
 
+    /**
+     * @notice Test that schedules an upgrade and executes it after delay
+     */
     function testScheduledUpgrade() public {
         bytes memory wrappedUpgradeCallData = abi.encodeWithSignature(
             "schedule(address,uint256,bytes,bytes32,bytes32,uint256)",
@@ -129,6 +145,9 @@ contract FullTest is Full {
         assertEq(impl, address(newImplementation));
     }
 
+    /**
+     * @notice Test that schedule upgrade and uses emergency to cancel it
+     */
     function testScheduledUpgradeCancelled() public {
         bytes memory wrappedUpgradeCallData = abi.encodeWithSignature(
             "schedule(address,uint256,bytes,bytes32,bytes32,uint256)",
@@ -160,6 +179,9 @@ contract FullTest is Full {
         TIME_LOCK.execute(address(CONTROLLER), 0, wrappedUpgradeCallData, PREDECESSOR, SALT);
     }
 
+    /**
+     * @notice Test that perform an emergency upgrade
+     */
     function testEmergencyUpgrade() public {
         vm.prank(address(MS_EMERGENCY_UPDATE));
         CONTROLLER.schedule(address(PROXY_ADMIN), 0, upgradeCalldata, PREDECESSOR, SALT, 0);
